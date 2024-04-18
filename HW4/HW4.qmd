@@ -1,0 +1,200 @@
+---
+title: "HW 4"
+author: "Yigit Ali Karadogan"
+format: html
+editor: visual
+---
+
+## HW_4
+
+## Section 3.7 - Exercise 10
+
+This question should be answered using the Carseats data set.
+
+```{r}
+library(ISLR2)
+Carseats
+```
+
+-   **A)** Fit a multiple regression model to predict Sales using Price, Urban, and US.
+
+```{r}
+attach(Carseats)
+lm.fit = lm(Sales~Price+Urban+US)
+summary(lm.fit)
+```
+
+-   **B)** Provide an interpretation of each coefficient in the model. Be careful---some of the variables in the model are qualitative!
+
+[Price:]{.underline}
+
+With the t-statistic's low p-value, the linear regression infers a relationship between price and sales. According to the coefficient, sales and price have a negative relationship: as price rises, sales fall.
+
+[Urban:]{.underline}
+
+The high p-value of the t-statistic in the linear regression indicates that there isn't a relationship between the store's location and the volume of sales.
+
+[US:]{.underline}
+
+Sales volume and the store's location in the US appear to be related, according to the linear regression. According to the coefficient, there is a positive correlation between "US" and "Sales", meaning that if the store is located in the US, sales will rise by about 1201 units.
+
+-   **C)** Write out the model in equation form, being careful to handle the qualitative variables properly.
+
+Sales = 13.04 + -0.05 Price + -0.02 UrbanYes + 1.20 USYes
+
+Urban=1 if the store is in an urban location and 0 if not, and US=1 if the store is in the US and 0 if not.
+
+-   D\) For which of the predictors can you reject the null hypothesis H0 :βj =0?
+
+We can reject the null hypothesis for the "Price" and "US" variables.
+
+-   **E)** On the basis of your response to the previous question, fit a smaller model that only uses the predictors for which there is evidence of association with the outcome.
+
+```{r}
+attach(Carseats)
+lm.fit1 = lm(Sales~Price+US)
+summary(lm.fit1)
+```
+
+-   **F)** How well do the models in (a) and (e) fit the data?
+
+```{r}
+anova(lm.fit1, lm.fit)
+```
+
+Based on the RSE and R\^2 of the linear regressions, they both fit the data similarly.
+
+-   **G)** Using the model from (e), obtain 95% confidence intervals for the coefficient(s).
+
+```{r}
+confint(lm.fit1)
+```
+
+-   **H)** Is there evidence of outliers or high leverage observations in the model from (e)?
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm.fit1)
+```
+
+The plot of standardized residuals versus leverage indicates the presence of a few highly leveraged observations.
+
+## Section 3.7 - Exercise 15
+
+This problem involves the Boston data set, which we saw in the lab for this chapter. We will now try to predict per capita crime rate using the other variables in this data set. In other words, per capita crime rate is the response, and the other variables are the predictors.
+
+-   **A)** For each predictor, fit a simple linear regression model to predict the response. Describe your results. In which of the models is there a statistically significant association between the predictor and the response? Create some plots to back up your assertions.
+
+```{r}
+library(ISLR2)
+attach(Boston)
+fit.zn <- lm(crim ~ zn)
+summary(fit.zn)
+```
+
+```{r}
+fit.indus <- lm(crim ~ indus)
+summary(fit.indus)
+```
+
+```{r}
+chas <- as.factor(chas)
+fit.chas <- lm(crim ~ chas)
+summary(fit.chas)
+```
+
+```{r}
+fit.nox <- lm(crim ~ nox)
+summary(fit.nox)
+```
+
+```{r}
+fit.rm <- lm(crim ~ rm)
+summary(fit.rm)
+```
+
+```{r}
+fit.age <- lm(crim ~ age)
+summary(fit.age)
+```
+
+```{r}
+fit.dis <- lm(crim ~ dis)
+summary(fit.dis)
+```
+
+```{r}
+fit.rad <- lm(crim ~ rad)
+summary(fit.rad)
+```
+
+```{r}
+fit.tax <- lm(crim ~ tax)
+summary(fit.tax)
+```
+
+```{r}
+fit.ptratio <- lm(crim ~ ptratio)
+summary(fit.ptratio)
+```
+
+```{r}
+fit.lstat <- lm(crim ~ lstat)
+summary(fit.lstat)
+```
+
+```{r}
+fit.medv <- lm(crim ~ medv)
+summary(fit.medv)
+```
+
+In order to determine the significant predictors, we must test H0:β1=0. With the exception of "chas," all predictors have p-values less than 0.05, allowing us to draw the conclusion that there is a statistically significant correlation between each predictor and the response.
+
+-   B\) Fit a multiple regression model to predict the response using all of the predictors. Describe your results. For which predictors can we reject the null hypothesis H0 : βj = 0?
+
+```{r}
+fit.all = lm(crim~., data=Boston)
+summary(fit.all)
+```
+
+There are now only significant associations for \`zn\`, \`dis\`, \`rad\`, \`black\` and \`medv\`. We can reject the null hypothesis for those predictors.
+
+-   **C)** How do your results from (a) compare to your results from (b)? Create a plot displaying the univariate regression coefficients from (a) on the x-axis, and the multiple regression coefficients from (b) on the y-axis. That is, each predictor is displayed as a single point in the plot. Its coefficient in a simple linear regression model is shown on the x-axis, and its coefficient estimate in the multiple linear regression model is shown on the y-axis.
+
+```{r}
+simple.reg <- vector("numeric",0)
+simple.reg <- c(simple.reg, fit.zn$coefficient[2])
+simple.reg <- c(simple.reg, fit.indus$coefficient[2])
+simple.reg <- c(simple.reg, fit.chas$coefficient[2])
+simple.reg <- c(simple.reg, fit.nox$coefficient[2])
+simple.reg <- c(simple.reg, fit.rm$coefficient[2])
+simple.reg <- c(simple.reg, fit.age$coefficient[2])
+simple.reg <- c(simple.reg, fit.dis$coefficient[2])
+simple.reg <- c(simple.reg, fit.rad$coefficient[2])
+simple.reg <- c(simple.reg, fit.tax$coefficient[2])
+simple.reg <- c(simple.reg, fit.ptratio$coefficient[2])
+simple.reg <- c(simple.reg, fit.lstat$coefficient[2])
+simple.reg <- c(simple.reg, fit.medv$coefficient[2])
+mult.reg <- vector("numeric", 0)
+mult.reg <- c(mult.reg, fit.all$coefficients)
+mult.reg <- mult.reg[-1]
+plot(simple.reg, mult.reg, col = "red")
+```
+
+The coefficients of multiple and simple regression differ from one another. The simple regression scenario represents the average effect of an increase in the predictor, ignoring other predictors, which accounts for the difference in the slope term. On the other hand, in the case of multiple regression, the slope term denotes the mean impact of increasing one predictor while maintaining the same values for the other predictors. Given that the correlation between the predictors indicates some strong associations between some of the predictors, it makes sense that the multiple regression suggests there is no relationship between the response and some of the predictors, while the basic linear regression says the contrary.
+
+-   **D)** Is there evidence of non-linear association between any of the predictors and the response? To answer this question, for each predictor X, fit a model of the form Y =β0 +β1X+β2X2 +β3X3 +ε.
+
+```{r}
+pred <- subset(Boston, select = -crim)
+pred <- subset(pred, select = -chas)
+fits <- lapply(names(pred), function(p) {
+  f <- paste0("crim ~ poly(", p, ", 3)")
+  lm(as.formula(f), data = Boston)
+})
+for (fit in fits) printCoefmat(coef(summary(fit)))
+```
+
+Indeed, there is a lot of evidence supporting the non-linear correlations between various factors.
+
+The inclusion of a cubic term (indus, nox, age, dis, ptratio, and medv) is important in many cases. In other instances, the squared term is (zn, rm, rad, tax, lstat), even though the cubic terms are not significant.
