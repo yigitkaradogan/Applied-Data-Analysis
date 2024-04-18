@@ -1,0 +1,175 @@
+---
+title: "21902218"
+author: "Yigit Ali Karadogan"
+format: html
+editor: visual
+---
+
+## HW 6
+
+![](Screen%20Shot%202023-10-26%20at%2010.59.35%20PM.png){fig-align="center"}
+
+```{r include = FALSE}
+library(tidyverse)
+library(magrittr)
+library(ISLR2)
+library(ggplot2)
+library(GLMsData)
+library(car)
+library(GGally)
+library(faraway)
+library(pander)
+library(readr)
+library(dplyr)
+library(readxl)
+library(corrplot)
+library(interactions)
+```
+
+```{r}
+pollution_data <- read_csv("~/Desktop/pollution.csv")
+pollution_data %>% summary()
+pollution_data %>% head()
+```
+
+Edu is median years of education, Nwt is percentage nonwhite, Jant is mean January temperature in degrees Fahrenheit, Rain is annual rainfall in inches, Nox is the natural logarithm of nitrous oxide concentration in parts per billion, Hum is relative humidity, and Inc is median income in thousands of dollars.
+
+```{r message = FALSE, warning = FALSE}
+with_cities <- pollution_data %>%
+  separate(City, into = c("City", "State"), sep = ", ", remove = FALSE) %>% 
+  filter(!grepl("-", State) & !grepl(" ", State) & !grepl("Bet", State))
+
+```
+
+```{r}
+with_cities %>% ggplot(aes(y = Mort)) +
+  geom_boxplot(aes(x = State))
+```
+
+It seems that people in LA have higher mortality rates than the average and people in KS and CA have lower mortality rates than the average
+
+```{r message = FALSE, warning = FALSE}
+my_fn <- function(data, mapping, method="loess", ...){
+  p <- ggplot(data = data, mapping = mapping) +
+    geom_point() +
+    geom_smooth(method = method, se = FALSE, ...)  
+
+  return (p)
+}
+
+without_cities <- pollution_data[, c(2, 3, 4, 5, 6, 7, 8, 9)]
+
+ggpairs(without_cities, progress = FALSE, cardinality_threshold = NULL,
+        upper = list(continuous = my_fn),  
+        lower = list(continuous = "cor"))
+
+```
+
+-   Mortality and Education seems to have negative correlation. If education level is increasing, mortality rates decrease
+
+-   Education and Income seems to have positive correlation. If education level is increasing, income decreases
+
+-   Mortality and Nonwhite seems to have positive correlation. If nonwhite population increases, mortality rates increase
+
+-   Nitrous oxide concentration and January temperature seems to have positive correlation. If January temperatures increases NOx concentration increase
+
+-   Education and Rain seems to have negative correlation. More educated people seems to stay in less rainy places.
+
+Let's see the whole model:
+
+```{r}
+lm_all <- lm(Mort ~ ., data = without_cities) 
+lm_all %>% summary()
+```
+
+If we accept p = 0.05. Then Nwt, Jant, Rain, Edu and Nox are statistically significant. Our model can explain 67% of the total variance. Let's look at diagnostic plots.
+
+```{r}
+plot(lm_all)
+plot(lm_all, which = 4)
+
+```
+
+-   From residuals vs fitted graph, we are overestimating at tails and underestimating at center. It has negative U-shape. We may miss quadratic term by intuition
+
+-   From Q-Q residuals graph, we see that residuals may not come from normal distribution as there are some bumbs from the line
+
+-   From Scale-Location graph, we see a U-shape which is not supposed to have
+
+-   From Residuals vs Leverage, we see some leveraged points but there aren't any influential points
+
+-   Maximum Cook's Distance is almost 0.20 (34th obs), there seems nothing to worry about
+
+From these insights, we have to develop our model
+
+Let's check if the data needs a transformation.
+
+```{r}
+res_pt <-
+  powerTransform(cbind(Mort, Edu, Nwt, Jant, Rain, Nox, Hum, Inc) ~ 1,
+                 without_cities)
+summary(res_pt)
+```
+
+We reject the null hypothesis that the data does not need any transformation. Let's apply the transformation.
+
+```{r}
+lm_pt <-
+  lm(I(Mort ^ 0.71) ~ I(Edu ^ 2.83)  + I(Nwt ^ 0.44) + I(Jant ^ 0.38) + I(Rain ^ 0.69) +          I(Nox ^ 0.51) + I(Hum ^ 1.45) + I(Inc ^ -2.27), without_cities)
+summary(lm_pt)
+```
+
+```{r}
+lm_pt %>% plot()
+```
+
+This model seems much better than the first one, but we should continue to develop it further.
+
+```{r}
+residualPlots(lm_pt)
+```
+
+Tukey test doesn't say any room for improvement. Maybe we should stop here.
+
+```{r}
+ncvTest(lm_pt)
+```
+
+Standard deviation is constant
+
+```{r}
+shapiro.test(rstudent(lm_pt))
+```
+
+Residuals have normal distribution. Everything looks fine.
+
+```{r}
+lm_int <-
+  lm(Mort ~ (Edu + Nwt + Jant + Rain + Nox + Hum + Inc)^2, without_cities)
+summary(lm_int)
+```
+
+There does not seem any considerable interaction between predictors.
+
+```{r}
+new_data <- data.frame(
+  Edu = 10,
+  Nwt = 15,
+  Jant = 35,
+  Rain = 40,
+  Nox = 2,
+  Hum = mean(pollution_data$Hum),
+  Inc= mean(pollution_data$Inc)
+)
+
+conf_interval <- predict(lm_pt, newdata = new_data, interval = "confidence", level = 0.90)
+pred_interval <- predict(lm_pt, newdata = new_data, interval = "prediction", level = 0.90)
+
+prediction <- conf_interval[, "fit"]
+confidence_interval <- conf_interval[, c("lwr", "upr")]
+prediction_interval <- pred_interval[, c("lwr", "upr")]
+
+cat("Predicted Mortality Age:", prediction, "\n")
+cat("90% Confidence Interval:", confidence_interval, "\n")
+cat("90% Prediction Interval:", prediction_interval, "\n")
+```
