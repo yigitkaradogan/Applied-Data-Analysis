@@ -1,0 +1,168 @@
+---
+title: "HW5 21902218"
+author: "Yigit Ali Karadogan"
+format: html
+editor: visual
+---
+
+# IE 451 HW 5
+
+![](images/Screen Shot 2023-10-21 at 4.41.14 PM.png){width="467"}
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(ISLR2)
+library(ggplot2)
+library(GLMsData)
+library(car)
+library(GGally)
+library(faraway)
+library(pander)
+library(readr)
+library(dplyr)
+library(readxl)
+library(corrplot)
+```
+
+### Start by firstly exploring data.  Use pairs plots for numerical explanatory variables and boxplots for categorical explanatory variable to find out the ones thatseem to be related to the response variable. Do not forget to comment on each plot. What insights about the response,predictors, and their relations have you gotten?
+
+```{r}
+used_cars <- read_csv("~/Desktop/used-cars.csv")
+```
+
+```{r}
+my_fn <- function(data, mapping, method="loess", ...){
+  p <- ggplot(data = data, mapping = mapping) +
+    geom_point() +
+    geom_smooth(method = method, se = FALSE, ...)  
+
+  return (p)
+}
+
+subset_cars1 <- used_cars[, c(2, 3, 4, 6, 7, 9, 14, 17, 18)]
+
+
+ggpairs(subset_cars1, progress = FALSE, cardinality_threshold = NULL,
+        upper = list(continuous = my_fn),  
+        lower = list(continuous = "cor"))
+```
+
+Upper plots show the correlation between variables. For instance:
+
+-   Age and Price has negative correlation. As age of the car increases, price decrease
+
+-   Manufacturing year and price has positive correlation. As manufacturing year increases, price increase
+
+-   KM and Price has negative correlation. As km of the car increases, price decrease
+
+-   Weight and price has positive correlation. As weight of the car increases, price increase
+
+-   Quarter Tax and price has positive correlation. As quarterly tax increases, price increase
+
+-   Quarter Tax and manufacturing year has positive correlation. As quarter tax increases, manufacturing year increase
+
+-   HP and Price has positive correlation. As HP of the car increases, price increase
+
+-   KM and manufacturing year has negative correlation. As KM increases, manufacturing year decreases.
+
+### Propose a multiple regression model.
+
+I will suggest a multiple regression model based on the information shown by the plots regarding the response, predictors, and their relationships:
+
+```{r}
+lm_fit <- lm(Price ~ Age_08_04 + KM + HP + Quarterly_Tax + Weight + Doors + Quarterly_Tax, used_cars)
+summary(lm_fit)
+```
+
+### Are response and at least one of the predictors are related? Explain.
+
+According to the model that we fit in, Age of the car, KM, HP, quarterly tax, weight are statistically significant. However, Doors p value is \>0.05 which means it is not statistically significant.
+
+### How good does your model fit to the data? Explain. Do not forget to check the diagnostic plots.
+
+```{r}
+summary(lm_fit)
+```
+
+Adjusted R-squared = 0.86 which is close to 1. That seems a good fit.
+
+```{r}
+residualPlots(lm_fit)
+```
+
+```{r}
+qqPlot(lm_fit)
+```
+
+```{r}
+lm_fit %>% plot()
+```
+
+Residuals-Fitted chart has U shape, which is not pleasant.
+
+Q-Q Residuals chart seems on the line, which seems a good fit.
+
+Scale-Loaction chart has U shape, which is not pleasant.
+
+From Residuals vs Leverage, some data points are highly leveraged and some of them seems influential points.
+
+### Which predictors are significant? Explain.
+
+According to the model that we fit in, Age of the car, KM, HP, quarterly tax, weight are statistically significant. However, Doors p value is \>0.05 which means it is not statistically significant.
+
+### How much does the expected price change if a car's age increases by one year while everything else are fixed?
+
+```{r}
+model_fit <- lm(Price ~ Age_08_04, data = used_cars)
+summary(model_fit)
+```
+
+A year's increase in age results in an almost 170,000 reduction in the estimated car price.
+
+### Can the expected car price change in response to change in age be different for different fuel types? What does dataexploration suggest? Construct an appropriate new model and statistical hypothesis. Test the hypothesis.
+
+```{r}
+model_fuel <- lm(Price ~ Age_08_04:Fuel_Type, data = used_cars)
+summary(model_fuel)
+```
+
+Yes, pricing varies according on age and kind of fuel. It is anticipated that the cost of CNG-powered cars will drop by \$192k annually. It is 170k for gasoline and 185k for diesel.
+
+### Predict the expected price and give its 80% confidence interval for a typical car with all features set to their sample means for the numerical predictors and to the most frequent categories for the categorical predictors.
+
+```{r}
+freq_table <- table(used_cars$Model)
+most_frequent_model <- names(freq_table[which.max(freq_table)])
+most_frequent_model
+
+freq_table <- table(used_cars$Fuel_Type)
+most_frequent_fuel <- names(freq_table[which.max(freq_table)])
+most_frequent_fuel
+
+freq_table <- table(used_cars$Color)
+most_frequent_color <- names(freq_table[which.max(freq_table)])
+most_frequent_color
+```
+
+```{r}
+typical_data <- data.frame(
+  Age_08_04 = mean(used_cars$Age_08_04),
+  Mfg_Month = mean(used_cars$Mfg_Month),
+  Mfg_Year = mean(used_cars$Mfg_Year),
+  KM = mean(used_cars$KM),
+  HP = mean(used_cars$HP),
+  Doors = mean(used_cars$Doors),
+  Quarterly_Tax = mean(used_cars$Quarterly_Tax),
+  Weight = mean(used_cars$Weight),
+
+  Fuel_Type = "Petrol",
+  Model = "TOYOTA Corolla 1.6 16V HATCHB LINEA TERRA 2/3-Doors",
+  Color = "Grey"
+
+)
+
+predict(lm_fit, newdata = typical_data)
+
+predict(lm_fit, newdata = typical_data, interval = "confidence", level = 0.80)
+```
