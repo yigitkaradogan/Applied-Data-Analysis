@@ -1,0 +1,153 @@
+---
+title: "HW#11"
+author: "YigitAliKaradogan"
+format: html
+editor: visual
+---
+
+## HW #11
+
+```{r}
+#| echo: false
+#| include: false
+library(magrittr)
+library(tidyverse)
+library(ISLR2)
+library(pander)
+library(GGally)
+library(MASS)
+library(glmnet)
+library(randomForest)
+library(pROC)
+library(ROCR)
+```
+
+### Q14
+
+In this problem, you will develop a model to predict whether a given car gets high or low gas mileage based on the Auto data set.
+
+**(a) Create a binary variable, mpg01, that contains a 1 if mpg contains a value above its median, and a 0 if mpg contains a value below its median. You can compute the median using the median() function. Note you may find it helpful to use the data.frame() function to create a single data set containing both mpg01 and the other Auto variables.\
+**
+
+```{r}
+Auto <- Auto %>%
+  dplyr::mutate(
+    mpg01 = factor(ifelse(mpg > median(mpg), 1, 0)),
+    origin = factor(
+      origin,
+      levels = c(1, 2, 3),
+      labels = c('American', 'European', 'Asian')
+    )
+  )
+```
+
+**(b) Explore the data graphically in order to investigate the association between mpg01 and the other features. Which of the other features seem most likely to be useful in predicting mpg01? Scatterplots and boxplots may be useful tools to answer this question. Describe your findings.**
+
+```{r,fig.width=12,fig.asp=1, message=FALSE, warning=FALSE}
+dplyr::select(Auto,-c(name,mpg)) %>% 
+  ggpairs(aes(col = mpg01, fill = mpg01, alpha = 0.6),
+        upper = list(combo = 'box'),
+        diag = list(discrete = wrap('barDiag', position = 'fill')),
+        lower = list(combo = 'dot_no_facet')) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+-   From the plot it seems that `cylinders`, `displacement`, `horsepower`, `weight` and `year` are useful for the prediction.
+
+**(c) Split the data into a training set and a test set.**
+
+```{r}
+set.seed(100)
+train <- sample(1:nrow(Auto), nrow(Auto)*0.75)
+Auto_train <- Auto[train,]
+Auto_test <- Auto[-train,]
+
+test_mpg01 <- Auto_test$mpg01
+```
+
+**(f) Perform logistic regression on the training data in order to predict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?**
+
+```{r}
+Auto_log <- glm(
+  mpg01 ~ cylinders + displacement + horsepower + weight + year,
+  data = Auto_train,
+  family = binomial
+)
+
+log_probs <- predict(Auto_log , Auto_test,
+                     type = "response")
+
+log_pred <- rep(0,98)
+log_pred[log_probs>0.5] <- 1
+
+
+table(log_pred, test_mpg01)
+```
+
+```{r}
+mean(log_pred == test_mpg01)
+```
+
+So the test error is `r 1-mean(log_pred == test_mpg01)`.
+
+```{r}
+pred_log_obj <- prediction(log_probs, test_mpg01)
+perf_log <- performance(pred_log_obj, "tpr", "fpr")
+auc_log <- performance(pred_log_obj, "auc")
+auc_log_value <- round(auc_log@y.values[[1]], digits=5)
+```
+
+```{r}
+x <- model.matrix(mpg01~cylinders+displacement+horsepower+weight+year,Auto_train)
+y <- as.numeric(as.character(Auto_train$mpg01))
+
+ridge <- cv.glmnet(x, y, family = 'binomial', type.measure = 'class', alpha = 0) 
+pred_ridge <- predict(ridge, newx = x, type = 'response')
+
+lasso <- cv.glmnet(x, y, family = 'binomial', type.measure = 'class', alpha = 1) 
+pred_lasso <- predict(lasso, newx = x, type = 'response')
+
+
+rf.model <- randomForest(mpg01~cylinders+displacement+horsepower+weight+year, data = Auto_train)
+pred_rf <- predict(rf.model, newdata = Auto_test, type = "prob")
+pred_rf_prob <- predict(rf.model, newdata = Auto_test, type = "prob")[,2]
+
+```
+
+```{r}
+pred_rf_obj <- prediction(pred_rf_prob, test_mpg01)
+perf_rf <- performance(pred_rf_obj, "tpr", "fpr")
+auc_rf <- performance(pred_rf_obj, "auc")
+auc_rf_value <- round(auc_rf@y.values[[1]], digits=5)
+
+```
+
+```{r}
+perf_ridge <- performance(prediction(pred_ridge, y), 'tpr', 'fpr')
+perf_lasso <- performance(prediction(pred_lasso, y), 'tpr', 'fpr')
+
+auc_ridge <- performance(prediction(pred_ridge, y), measure = "auc")
+auc_lasso <- performance(prediction(pred_lasso, y), measure = "auc")
+
+auc_ridge_value <- round(auc_ridge@y.values[[1]],5)
+auc_lasso_value <- round(auc_lasso@y.values[[1]],5)
+
+plot(perf_ridge, col="#377eb8",lwd=2)
+plot(perf_lasso, add=TRUE, col="#4daf4a",lwd=2)
+plot(perf_rf, add=TRUE, col="#dd510f", lwd=2)
+plot(perf_log, add=TRUE, col="#dd0fd5", lwd=2 )
+
+abline(a=0, b= 1)
+
+legend("bottomright",           
+        legend=c( paste("Random Forest (AUC=", auc_rf_value, ")"),
+       paste("Ridge (AUC=", auc_ridge_value, ")"), 
+       paste("Lasso (AUC=", auc_lasso_value, ")"),
+       paste("Logistic Regression (AUC=", auc_log_value, ")")),  
+       col=c("#dd510f","#377eb8", "#4daf4a", "#dd0fd5"),            
+       lty=1,                    
+       cex=0.9,
+       lwd=2) 
+```
+
+I would pick Random Forest since its AUC is higher than other methods.
