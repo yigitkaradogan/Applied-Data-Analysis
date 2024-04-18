@@ -1,0 +1,262 @@
+---
+title: "HW2"
+author: "Yigit Ali Karadogan"
+format: html
+---
+
+## HW2
+
+install required packages
+
+```{r,include=FALSE}
+library(tidyverse)
+library(readr)
+library(ISLR2)
+library(GGally)
+library(ggplot2)
+```
+
+## Exercise 9
+
+take a look at auto data
+
+```{r}
+glimpse(Auto)
+
+```
+
+check if there is any missing values
+
+```{r}
+
+sum(is.na(Auto))
+```
+
+a\) Which of the predictors are quantitative, and which are qualitative?
+
+```{r}
+?ISLR2::Auto
+```
+
+although "origin" is represented by integers, it is categorical variable that represent the origin of the car (1. American, 2. European, 3. Japanese), also "name" is also qualitative predictor.
+
+qualitative predictors:
+
+-name
+
+-origin
+
+quantitative predictors:
+
+rest
+
+b\) What is the range of each quantitative predictor? You can answer this using the `range()` function.
+
+```{r}
+range_Auto <- data.frame(sapply(Auto[ ,1:7], range))
+rownames(range_Auto) <- c("min:", "max:")
+range_Auto
+```
+
+c\) What is the mean and standard deviation of each quantitative predictor?
+
+mean:
+
+```{r}
+sapply(Auto[ ,1:7], mean)
+```
+
+sd:
+
+```{r}
+sapply(Auto[ ,1:7], sd)
+```
+
+d\) Now remove the 10th through 85th observations. What is the range, mean, and standard deviation of each predictor in the subset of the data that remains?
+
+```{r}
+Auto_2 <- Auto[-c(10:85), ]
+
+range_Auto_2 <- data.frame(sapply(Auto_2[ ,1:7], range))
+rownames(range_Auto_2) <- c("min:", "max:")
+range_Auto_2
+
+mean_2 <- sapply(Auto_2[ ,1:7], mean)
+sd_2 <- sapply(Auto_2[ ,1:7], sd)
+mean_2
+sd_2
+```
+
+e\) Using the full data set, investigate the predictors graphically, using scatterplots or other tools of your choice. Create some plots highlighting the relationships among the predictors. Comment on your fndings.
+
+```{r}
+my_fn <- function(data, mapping, method="loess", ...){
+  p <- ggplot(data = data, mapping = mapping) +
+    geom_point() +
+    geom_smooth(method = method, se = FALSE, ...)  
+
+  return (p)
+}
+
+subset_auto <- Auto[, 1:7]
+
+ggpairs(subset_auto, progress = FALSE,
+        upper = list(continuous = my_fn),  
+        lower = list(continuous = "cor"))
+```
+
+weight-mpg seems to have negative correlation. lets plot weight-mpg plot
+
+```{r}
+Auto %>% ggplot(aes(x=weight, y=mpg, color = origin)) +
+  geom_smooth(col = "yellow", method = "auto")+
+  geom_point() +
+  labs(
+    subtitle = "Points represent car data by origin",
+  ) 
+```
+
+also, displacement-cylinders seems to have positive correlation. lets plot displacement-cylinders plot
+
+```{r}
+Auto %>% ggplot(aes(x=cylinders, y=displacement)) +
+  geom_smooth(col = "yellow", method = "auto")+
+  geom_point() 
+```
+
+as cylinders of cars increase, displacement also increase too.
+
+f\) Suppose that we wish to predict gas mileage (mpg) on the basis of the other variables. Do your plots suggest that any of the other variables might be useful in predicting mpg? Justify your answer.
+
+The figures in (e) show that, with the exception of "name", all predictors are correlated with mpg.
+
+## Exercise 10
+
+a\) How many rows are in this data set? How many columns? What do the rows and columns represent?
+
+```{r}
+Boston
+dim(Boston)
+?Boston
+```
+
+There are 506 rows and 13 columns. Each row represents a home and all of its characteristics. A set of one attribute of a residing is represented by each column.
+
+b\) Make some pairwise scatterplots of the predictors (columns) in this data set. Describe your fndings.
+
+```{r}
+my_fn <- function(data, mapping, method="loess", ...){
+      p <- ggplot(data = data, mapping = mapping) + 
+      geom_point() + 
+      geom_smooth(formula = y ~ x,method=method,se=F, ...)
+      p
+}
+
+Boston[ ,1:3] %>% 
+  ggpairs(progress = FALSE,
+          upper = list(continuous = my_fn),
+          lower = list(continuous = "cor"))
+
+Boston[ ,6:10] %>% 
+  ggpairs(progress = FALSE,
+          upper = list(continuous = my_fn),
+          lower = list(continuous = "cor"))
+
+Boston[ ,11:13] %>% 
+  ggpairs(progress = FALSE,
+          upper = list(continuous = my_fn),
+          lower = list(continuous = "cor"))
+```
+
+c\) Are any of the predictors associated with per capita crime rate? If so, explain the relationship.
+
+```{r}
+pairs(Boston$crim~Boston$zn)
+pairs(Boston$crim~Boston$indus)
+pairs(Boston$crim~Boston$chas)
+pairs(Boston$crim~Boston$nox)
+pairs(Boston$crim~Boston$rm)
+pairs(Boston$crim~Boston$age)
+pairs(Boston$crim~Boston$dis)
+pairs(Boston$crim~Boston$rad)
+pairs(Boston$crim~Boston$tax)
+pairs(Boston$crim~Boston$ptratio)
+pairs(Boston$crim~Boston$lstat)
+pairs(Boston$crim~Boston$medv)
+```
+
+As it can be seen in crim-dis graph, as distance to five Boston employment centres decrease, crime rate increases. They have negative correlation.
+
+d\) Do any of the census tracts of Boston appear to have particularly high crime rates? Tax rates? Pupil-teacher ratios? Comment on the range of each predictor.
+
+```{r}
+hist(Boston$crim, breaks=30, main="Crime Rate and Frequency", xlab="Crime Rate")
+
+range(Boston$crim)
+median(Boston$crim)
+```
+
+Crim's median score is 0.25651, however many suburbs have significantly higher levels.
+
+```{r}
+hist(Boston$tax, breaks=30, main="Tax and Count", xlab="Tax")
+
+range(Boston$tax)
+median(Boston$tax)
+mean(Boston$tax)
+```
+
+Although the range is not many orders of magnitude, there is still the scenario of a large number of suburbs accepting the same tax values far apart from the others
+
+```{r}
+hist(Boston$ptratio, breaks=30, main="pupil-teacher ratio and count", xlab="pupil-teacher ratio")
+
+range(Boston$ptratio)
+median(Boston$ptratio)
+mean(Boston$ptratio)
+```
+
+There do not appear to be any significant outliers or gaps in ptratio.
+
+e\) How many of the census tracts in this data set bound the Charles river?
+
+```{r}
+table(Boston$chas)
+
+```
+
+The Charles river divides 35 suburban areas.
+
+f\) What is the median pupil-teacher ratio among the towns in this data set?
+
+```{r}
+median(Boston$ptratio)
+```
+
+19.05 pupils per teacher
+
+g\) Which census tract of Boston has lowest median value of owneroccupied homes? What are the values of the other predictors for that census tract, and how do those values compare to the overall ranges for those predictors? Comment on your findings
+
+```{r}
+Boston[Boston$medv == min(Boston$medv), ]
+
+```
+
+The 399th and 406th suburb has lowest median value of owner-occupies homes.
+
+f\) In this data set, how many of the census tracts average more than seven rooms per dwelling? More than eight rooms per dwelling? Comment on the census tracts that average more than eight rooms per dwelling.
+
+```{r}
+nrow(Boston[Boston$rm > 7,]) 
+nrow(Boston[Boston$rm > 8,]) 
+```
+
+64 - more than seven rooms per dwelling. 13 - more than eight rooms per dwelling.
+
+```{r}
+summary(subset(Boston,rm>8))
+summary(Boston)
+pairs(Boston$crim~Boston$rm)
+```
+
+There are less crime when census tracts that average more than eight rooms per dwelling. They have negative correlation.
