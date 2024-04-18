@@ -1,0 +1,1 @@
+Solve Exercise 12 on page 192 and Exercise 14 on page 194 of ISLR2.
