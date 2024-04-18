@@ -1,0 +1,149 @@
+---
+title: "IE451_HW1_YigitAliKaradogan"
+format: html
+editor: visual
+---
+
+## HW1
+
+Upload required packages
+
+```{r}
+library("nycflights13")
+library("tidyverse")
+```
+
+## Question-1
+
+Take a look at 'flights' data
+
+```{r}
+flights
+```
+
+**5.2.4 - 1.1** Find all flights that had an arrival delay of two or more hours
+
+```{r}
+flights %>% filter(arr_delay >= 120)
+```
+
+**5.2.4 - 1.2** Find all flights that flew to Houston (`IAH` or `HOU`)
+
+```{r}
+flights %>% filter(dest=='IAH' | dest=='HOU')
+```
+
+**5.2.4 - 1.3** Find all flights that were operated by United, American, or Delta
+
+```{r}
+airlines
+flights %>% filter(carrier %in% c('UA','AA','DL'))
+```
+
+**5.2.4 - 1.4** Find all flights that departed in summer (July, August, and September)
+
+```{r}
+flights %>% filter(month %in% c(7:9))
+```
+
+**5.2.4 - 1.5** Find all flights that arrived more than two hours late, but didn't leave late
+
+```{r}
+flights %>% filter(arr_delay > 120, dep_delay <= 0)
+```
+
+**5.2.4 - 1.6** Find all flights that were delayed by at least an hour, but made up over 30 minutes in flight
+
+```{r}
+flights %>% filter(dep_delay >= 60, dep_delay - arr_delay > 30)
+```
+
+**5.2.4 - 1.7** Find all flights that departed between midnight and 6am (inclusive)
+
+```{r}
+flights %>% filter(dep_time <= 600 | dep_time == 2400)
+```
+
+**5.2.4 - 2 A**nother useful dplyr filtering helper is between(). What does it do? Can you use it to simplify the code needed to answer the previous challenges?
+
+between() is used to check that whether a numeric value falls in a specific range or not. I can do it for **5.2.4 - 1.4** as follows:
+
+```{r}
+flights %>% filter(between(month, 7, 9))
+```
+
+**5.2.4 - 3 H**ow many flights have a missing `dep_time`? What other variables are missing? What might these rows represent?
+
+```{r}
+flights %>% filter(is.na(dep_time))
+```
+
+dep_delay, arr_time, arr_delay, air_time are also missing. These may be cancelled flights.
+
+**5.3.1 - 2 S**ort `flights` to find the most delayed flights. Find the flights that left earliest.
+
+```{r}
+flights %>% arrange(desc(dep_delay))
+```
+
+```{r}
+flights %>% arrange(dep_delay)
+```
+
+B6 97 JFK to DEN was the flight that left the airport earliest.
+
+**5.3.1 - 3** Sort `flights` to find the fastest (highest speed) flights.
+
+```{r}
+flights %>% arrange(desc(distance/air_time))
+```
+
+DL 1499 is the fastest flight
+
+**5.3.1 - 4** Which flights travelled the farthest? Which travelled the shortest?
+
+```{r}
+flights %>% arrange(desc(distance))
+```
+
+HA 51 traveled the farthest
+
+```{r}
+flights %>% arrange(distance)
+```
+
+US 1631 traveled the shortest
+
+**5.6.7 - 5** Which carrier has the worst delays? Challenge: can you disentangle the effects of bad airports vs. bad carriers? Why/why not? (Hint: think about `flights %>% group_by(carrier, dest) %>% summarise(n())`)
+
+```{r}
+flights %>%
+  group_by(carrier) %>%
+  summarise(arr_delay = mean(arr_delay, na.rm = TRUE)) %>%
+  arrange(desc(arr_delay))
+```
+
+F9 - Frontier Airlines has the worst delays
+
+**5.7.1 - 2** Which plane (`tailnum`) has the worst on-time record?
+
+```{r}
+flights %>%
+  filter(!is.na(arr_delay)) %>%
+  group_by(tailnum) %>%
+  summarise(arr_delay = mean(arr_delay)) %>% 
+  arrange(desc(arr_delay))
+```
+
+N844MH has the worst on-time record since it has the most delays
+
+**5.7.1 - 3** What time of day should you fly if you want to avoid delays as much as possible?
+
+```{r}
+flights %>%
+  group_by(hour) %>%
+  summarise(arr_delay = mean(arr_delay, na.rm = TRUE)) %>%
+  arrange(arr_delay)
+```
+
+7AM has the fewest delays
