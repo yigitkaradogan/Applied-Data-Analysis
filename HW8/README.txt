@@ -1,0 +1,1 @@
+Solve Exercise 8 and Exercise 9 a, b, c, and d in Section 6.6 (pp. 285, 286) of ISLR2.

@@ -1,0 +1,218 @@
+---
+title: "HW9"
+author: "Yigit Ali Karadogan"
+format: html
+editor: visual
+---
+
+## HW#9
+
+### Exercise 8
+
+In this exercise, we will generate simulated data, and will then use this data to perform best subset selection.
+
+#### Part A
+
+```{r}
+set.seed(2)
+x = rnorm(100)
+e = rnorm(100)
+```
+
+#### Part B
+
+```{r}
+Y=5+3*x+2*x^2+8*x^3+e
+```
+
+#### Part C
+
+```{r}
+library(leaps)
+data=data.frame(x,x^2,x^3,x^4,x^5,x^6,x^7,x^8,x^9,x^10,Y)
+reg.fit=regsubsets(Y~.,data)
+reg.summary=summary(reg.fit)
+```
+
+```{r}
+#| fig.asp: 1
+plot(reg.fit, scale = "Cp")
+plot(reg.fit, scale = "bic")
+plot(reg.fit, scale = "adjr2")
+```
+
+```{r}
+number=c(which.min(reg.summary$cp),which.min(reg.summary$bic),which.max(reg.summary$adjr2))
+number
+```
+
+The best model is one with the intercept,x,x^2^,x^3^
+
+```{r}
+coefficients(reg.fit, 3)
+```
+
+#### Part D
+
+```{r}
+reg.fwd=regsubsets(Y~.,data,method='forward')
+reg.summary.fwd=summary(reg.fwd)
+
+plot(reg.summary.fwd$cp,xlab = 'number of variables',ylab='cp',type='l')
+plot(reg.summary.fwd$bic,xlab = 'number of variables',ylab='bic',type='l')
+plot(reg.summary.fwd$adjr2,xlab = 'number of variables',ylab='adjr2',type='l')
+
+number=c(which.min(reg.summary.fwd$cp),which.min(reg.summary.fwd$bic),which.max(reg.summary.fwd$adjr2))
+number
+```
+
+```{r}
+reg.summary.fwd
+```
+
+```{r}
+coef(reg.fwd,3)
+```
+
+```{r}
+reg.bwd=regsubsets(Y~.,data,method='backward')
+reg.summary.bwd=summary(reg.bwd)
+
+plot(reg.summary.bwd$cp,xlab = 'number of variables',ylab='cp',type='l')
+plot(reg.summary.bwd$bic,xlab = 'number of variables',ylab='bic',type='l')
+plot(reg.summary.bwd$adjr2,xlab = 'number of variables',ylab='adjr2',type='l')
+
+number=c(which.min(reg.summary.bwd$cp),which.min(reg.summary.bwd$bic),which.max(reg.summary.bwd$adjr2))
+number
+```
+
+```{r}
+reg.summary.bwd
+```
+
+```{r}
+coef(reg.bwd,3)
+```
+
+Answers are same with Part C
+
+#### Part E
+
+```{r}
+library(glmnet)
+
+data=data.frame(x,x^2,x^3,x^4,x^5,x^6,x^7,x^8,x^9,x^10,Y)
+X <- as.matrix(data[, -length(data)])
+
+
+model_lasso <- cv.glmnet(y = Y, 
+                         x = X, 
+                         alpha = 1)
+```
+
+```{r}
+plot(model_lasso)
+oneSE.lam = model_lasso$lambda.1se
+min.lam = model_lasso$lambda.min
+oneSE.lam
+min.lam
+coef(model_lasso, s = c(oneSE.lam, min.lam))
+```
+
+Higher values of lambda result in an increase in the MSE. min value of log(lambda) is 0.29, 1se value of log(lambda) is 0.42. Coefficients change accordingly, and only non-zero coefficients are x,x^2^,x^3^.
+
+#### Part F
+
+```{r}
+Y = 5 + 7 * x^7 + e
+
+reg.fit=regsubsets(Y~.,data)
+reg.summary=summary(reg.fit)
+
+plot(reg.summary$cp,xlab = 'number of variables',ylab='cp',type='l')
+plot(reg.summary$bic,xlab = 'number of variables',ylab='bic',type='l')
+plot(reg.summary$adjr2,xlab = 'number of variables',ylab='adjr2',type='l')
+number=c(which.min(reg.summary$cp),which.min(reg.summary$bic),which.max(reg.summary$adjr2))
+number
+```
+
+```{r}
+#| fig.asp: 1
+plot(reg.fit, scale = "Cp")
+plot(reg.fit, scale = "bic")
+plot(reg.fit, scale = "adjr2")
+```
+
+```{r}
+xx=model.matrix(Y~.,data)[,-1]
+cv.out=cv.glmnet(xx,Y,alpha=1)
+plot(cv.out)
+```
+
+### Exercise 9
+
+In this exercise, we will predict the number of applications received using the other variables in the College data set.
+
+#### Part A
+
+```{r}
+library(ISLR2)
+
+set.seed(1)
+x = model.matrix(Apps~.,College)[,-1]
+y = College$Apps
+grid = 10^seq(10,-2,length=100)
+
+train_index <- sample(1:nrow(College), round(nrow(College) / 2))
+train <- College[train_index, ]
+test <- College[-train_index, ]
+```
+
+#### Part B
+
+```{r}
+model_linear <- lm(Apps ~ ., data = train)
+summary(model_linear)
+```
+
+```{r}
+pred <- predict(model_linear, test)
+(mse <- mean((pred - test$Apps)^2))
+```
+
+#### Part C
+
+```{r}
+train.mat = model.matrix(Apps~., data=train)
+test.mat = model.matrix(Apps~., data=test)
+grid = 10^seq(4, -2, length=100)
+mod.ridge = cv.glmnet(train.mat, train[, "Apps"], alpha=0, lambda=grid)
+
+plot(mod.ridge)
+lambda.1se= mod.ridge$lambda.1se
+```
+
+```{r}
+ridge.pred = predict(mod.ridge, newx=test.mat, s=lambda.1se)
+mean((test[, "Apps"] - ridge.pred)^2)
+```
+
+Error for ridge regression is lower than the error for linear regression
+
+#### Part D
+
+```{r}
+mod.lasso = cv.glmnet(train.mat, train[, "Apps"], alpha=1, lambda=grid)
+
+plot(mod.lasso)
+lambda.1se= mod.lasso$lambda.1se
+```
+
+```{r}
+lasso.pred = predict(mod.lasso, newx=test.mat, s=lambda.1se)
+mean((test[, "Apps"] - lasso.pred)^2)
+```
+
+```{r}
+predict(mod.lasso, s=lambda.1se, type="coefficients")
+```
