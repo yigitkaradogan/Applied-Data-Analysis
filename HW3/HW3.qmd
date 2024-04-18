@@ -1,0 +1,184 @@
+---
+title: "21902218"
+author: "Yigit Ali Karadogan"
+format: html
+editor: visual
+---
+
+# HW_3
+
+## Section 3.7 - Exercise 4
+
+I collect a set of data (n = 100 observations) containing a single predictor and a quantitative response. I then fit a linear regression model to the data, as well as a separate cubic regression, i.e. Y = β0 +β1X +β2X2 +β3X3 +ε.
+
+-   **A)** Suppose that the true relationship between X and Y is linear, i.e. Y = β0 + β1X + ε. Consider the training residual sum of squares (RSS) for the linear regression, and also the training RSS for the cubic regression. Would we expect one to be lower than the other, would we expect them to be the same, or is there not enough information to tell? Justify your answer.
+
+**ANSWER:**
+
+I expect that the training RSS for cubic regression will be lower than for simple linear regression because the additional polynomial items allow for a closer fit (more degrees of freedom) of the training data. Cubic regression is at least as flexible as the linear regression.
+
+-   **B)** Answer (a) using test rather than training RSS.
+
+**ANSWER:**
+
+Simple linear regression would generalize to unknown data more effectively because the true relationship is linear, hence I would anticipate that it would have a lower test RSS. I would anticipate that the cubic model will have a larger test RSS because it probably overfit the training data.
+
+-   **C)** Suppose that the true relationship between X and Y is not linear, but we don't know how far it is from linear. Consider the training RSS for the linear regression, and also the training RSS for the cubic regression. Would we expect one to be lower than the other, would we expect them to be the same, or is there not enough information to tell? Justify your answer.
+
+**ANSWER:**
+
+Cubic regression's training RSS will be lower because it will fit non-linear data better.
+
+-   **D)** Answer (c) using test rather than training RSS.
+
+**ANSWER:**
+
+The test RSS is based on how nonlinear is the actual relationship. If relationship is more linear than cubic, cubic regression may over-fit, resulting in higher cubic RSS and lower linear RSS.If relationship is more cubic than linear, linear regression may be underfit, resulting in higher linear RSS and lower cubic RSS.
+
+## Section 3.7 - Exercise 8
+
+This question involves the use of simple linear regression on the Auto data set.
+
+-   **A)** Use the lm() function to perform a simple linear regression with mpg as the response and horsepower as the predictor. Use the summary() function to print the results. Comment on the output.
+
+**ANSWER:**
+
+```{r}
+library(magrittr)
+library(dplyr)
+library(ISLR2)
+lm1 <- lm(formula = mpg ~ horsepower, data = Auto) 
+lm1 %>% summary()
+```
+
+-   i\. Is there a relationship between the predictor and the response?
+
+-   ii\. How strong is the relationship between the predictor and the response?
+
+-   iii\. Is the relationship between the predictor and the response positive or negative?
+
+-   iv\. What is the predicted mpg associated with a horsepower of 98? What are the associated 95% confidence and prediction intervals?
+
+**ANSWER:**
+
+The fact that the p-value for the coefficient of horsepower is nearly zero provides strong support for the hypothesis that mpg and horsepower are related. For every unit increase in horsepower, mpg reduces by 0.157. (NEGATIVELY CORRELATION)
+
+The adjusted R\^2 is 0.6, and this means 60% of variance in mpg can be explained by horsepower in this model.
+
+Predicted mpg value when horsepower = 98:
+
+**\$ y = (39.9358)+(-0.1578)\*(98)**
+
+**y = 24.47 \$**
+
+```{r}
+predict(lm1,data.frame(horsepower=98),interval='prediction')
+confint(lm1)
+```
+
+The associated 95% confidence for horsepower is (-0.170517,-0.1451725), the predict (14.8094,34.12476)
+
+-   **B)** Plot the response and the predictor. Use the abline() function to display the least squares regression line.
+
+**ANSWER:**
+
+```{r}
+plot(Auto$horsepower, Auto$mpg)
+abline(lm1)
+```
+
+-   **C)** Use the plot() function to produce diagnostic plots of the least squares regression fit. Comment on any problems you see with the fit.
+
+**ANSWER:**
+
+```{r}
+par(mfrow = c(2, 2))
+plot(lm1, cex = 0.1)
+```
+
+A U-Shaped pattern in the residuals - fitted chart denotes non-linearity in the data. Some observations have considerabe leverage, as seen by the residuals - leverage chart. Some potential outliers are shown on the scale-location chart. By looking at Q-Q Residuals, it seems slightly normal distribution.
+
+## Section 5.4 - Exercise 8
+
+We will now perform cross-validation on a simulated data set.
+
+-   **A)** Generate a simulated data set as follows:
+
+    ```{r}
+    set.seed(1)
+    x <- rnorm(100)
+    y <- x - 2 *x^2 + rnorm(100)
+    ```
+
+-   In this data set, what is n and what is p? Write out the model used to generate the data in equation form.
+
+**ANSWER:**\
+n is 100 and p is 1. This is a polynomial regression model.
+
+\$ Y = X-2X\^2+e \$
+
+-   **B)** Create a scatter plot of X against Y. Comment on what you find.
+
+**ANSWER:**
+
+```{r}
+plot(x,y)
+```
+
+y has a negative quadratic relationship with x.
+
+-   **C)** Set a random seed, and then compute the LOOCV errors that result from fitting the following four models using least squares:					
+
+-   i\. Y = β0 + β1X + ε
+    ii. Y =β0 +β1X+β2X2 +ε					
+
+-   iii\. Y =β0 +β1X+β2X2 +β3X3 +ε
+    iv. Y =β0 +β1X+β2X2 +β3X3 +β4X4 +ε.\
+
+    Note you may find it helpful to use the data.frame() function to create a single data set containing both X and Y .
+
+**ANSWER:**
+
+```{r}
+library(boot)
+set.seed(1)
+df = data.frame(x,y)
+cv.error1 = rep(0,4)
+for (i in 1:4){
+  glm.fit = glm(y ~ poly(x,i), data=df) 
+  cv.error1[i] = cv.glm(df, glm.fit)$delta[1]
+}
+cv.error1
+```
+
+-   D\) Repeat (c) using another random seed, and report your results. Are your results the same as what you got in (c)? Why?
+    			
+
+**ANSWER:**
+
+```{r}
+set.seed(2)
+cv.error2 = rep(0,4)
+for (i in 1:4){
+  glm.fit      = glm(y ~ poly(x,i), data=df) 
+  cv.error2[i] = cv.glm(df, glm.fit)$delta[1]
+}
+cv.error2
+```
+
+The outcomes are indeed the same. Because LOOCV uses the rest to anticipate every observation.
+
+**E)** Which of the models in (c) had the smallest LOOCV error? Is this what you expected? Explain your answer.
+**ANSWER:**
+
+Second model has the smalles error, as anticipated, adding a quadratic term causes a significant decrease in the LOOCV estimate for MSE. The error rate slightly rises as higher polynomial terms are employed.
+
+-   **F)** Comment on the statistical significance of the coefficient estimates that results from fitting each of the models in (c) using least squares. Do these results agree with the conclusions drawn based on the cross-validation results?
+
+```{r}
+lm.fit = lm(y ~ poly(x,4), data=df)
+summary(lm.fit)
+```
+
+Only x and x\^2 are statistically significant, consistent with CV results.
+	
